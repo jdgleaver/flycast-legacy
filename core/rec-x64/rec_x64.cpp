@@ -59,7 +59,11 @@ void ngen_mainloop(void* v_cntx)
 			"pushq %%r13						\n\t"
 			"pushq %%r14						\n\t"
 			"pushq %%r15						\n\t"
+#ifdef _WIN32
+			"subq $40, %%rsp						\n\t"	// 32-byte shadow space + 8 for stack 16-byte alignment
+#else
 			"subq $8, %%rsp						\n\t"	// 8 for stack 16-byte alignment
+#endif
 #if defined(__MACH__) || defined(_ANDROID)
 			"movl %[_SH4_TIMESLICE], " _U "cycle_counter(%%rip)	\n"
 
@@ -114,7 +118,11 @@ void ngen_mainloop(void* v_cntx)
 		"end_run_loop:							\n\t"
 #endif	// !__MACH__
 
+#ifdef _WIN32
+			"addq $40, %%rsp						\n\t"
+#else
 			"addq $8, %%rsp					 	\n\t"
+#endif
 			"popq %%r15							\n\t"
 			"popq %%r14							\n\t"
 			"popq %%r13							\n\t"
