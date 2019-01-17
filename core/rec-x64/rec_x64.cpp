@@ -685,7 +685,7 @@ public:
             case shop_fmac:
                if (regalloc.mapf(op.rd) != regalloc.mapf(op.rs1))
                	movss(regalloc.MapXRegister(op.rd), regalloc.MapXRegister(op.rs1));
-				if (cpu.has(Xbyak::util::Cpu::tAVX512F) || cpu.has(Xbyak::util::Cpu::tAVX512VL))
+               if (cpu.has(Xbyak::util::Cpu::tFMA))
                	vfmadd231ss(regalloc.MapXRegister(op.rd), regalloc.MapXRegister(op.rs2), regalloc.MapXRegister(op.rs3));
 					else
 					{
@@ -755,7 +755,7 @@ public:
 
             case shop_ftrv:
             	mov(rax, (uintptr_t)op.rs1.reg_ptr());
-				if (cpu.has(Xbyak::util::Cpu::tAVX512F) || cpu.has(Xbyak::util::Cpu::tAVX512VL))
+            	if (cpu.has(Xbyak::util::Cpu::tFMA))
             	{
             		movaps(xmm0, xword[rax]);					// fn[0-4]
             		mov(rax, (uintptr_t)op.rs2.reg_ptr());		// fm[0-15]
@@ -813,7 +813,7 @@ public:
             case shop_frswap:
                mov(rax, (uintptr_t)op.rs1.reg_ptr());
                mov(rcx, (uintptr_t)op.rd.reg_ptr());
-					if (cpu.has(Xbyak::util::Cpu::tAVX))
+					if (0) //cpu.has(Xbyak::util::Cpu::tAVX))
 					{
 						vmovaps(ymm0, yword[rax]);
 						vmovaps(ymm1, yword[rcx]);
