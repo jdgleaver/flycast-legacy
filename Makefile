@@ -562,7 +562,7 @@ else
 	LDFLAGS        += -DNDEBUG
 
 	ifeq ($(HAVE_LTCG), 1)
-		CORE_DEFINES   += -flto
+		CORE_DEFINES   += -flto -flto-partition=none
 	endif
 
 	CORE_DEFINES      += -DRELEASE
