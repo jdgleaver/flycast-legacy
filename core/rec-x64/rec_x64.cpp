@@ -46,20 +46,46 @@ void(*ngen_FailedToFindBlock)() = &ngen_FailedToFindBlock_internal;
 #define _U
 #endif
 
-void ngen_mainloop(void* v_cntx)
-{
-	__asm__ volatile (
-			"pushq %%rbx						\n\t"
-			"pushq %%rbp						\n\t"
 #ifdef _WIN32
-			"pushq %%rdi						\n\t"
-			"pushq %%rsi						\n\t"
+#define WIN32_SEH(x) x
+#else
+#define WIN32_SEH(x)
 #endif
-			"pushq %%r12						\n\t"
-			"pushq %%r13						\n\t"
-			"pushq %%r14						\n\t"
-			"pushq %%r15						\n\t"
-			"subq $8, %%rsp						\n\t"	// 8 for stack 16-byte alignment
+
+//void ngen_mainloop(void* v_cntx)
+//{
+	__asm__ (
+			".text							\n\t"
+			".p2align 4,,15					\n\t"
+			".globl	ngen_mainloop			\n\t"
+			".def	ngen_mainloop;	.scl	2;	.type	32;	.endef	\n\t"
+			".seh_proc	ngen_mainloop		\n\t"
+		"ngen_mainloop:						\n\t"
+			"pushq %rbx						\n\t"
+			WIN32_SEH(".seh_pushreg	%rbx	\n\t")
+			"pushq %rbp						\n\t"
+			WIN32_SEH(".seh_pushreg	%rbp	\n\t")
+#ifdef _WIN32
+			"pushq %rdi						\n\t"
+			".seh_pushreg	%rdi			\n\t"
+			"pushq %rsi						\n\t"
+			".seh_pushreg	%rsi			\n\t"
+#endif
+			"pushq %r12						\n\t"
+			WIN32_SEH(".seh_pushreg	%r12	\n\t")
+			"pushq %r13						\n\t"
+			WIN32_SEH(".seh_pushreg	%r13	\n\t")
+			"pushq %r14						\n\t"
+			WIN32_SEH(".seh_pushreg	%r14	\n\t")
+			"pushq %r15						\n\t"
+			WIN32_SEH(".seh_pushreg	%r15	\n\t")
+#ifdef _WIN32
+			"subq $40, %rsp					\n\t"	// 32-byte shadow space + 8 for stack 16-byte alignment
+			".seh_stackalloc	40			\n\t"
+			".seh_endprologue				\n\t"
+#else
+			"subq $8, %rsp					\n\t"	// 8 for stack 16-byte alignment
+#endif
 #if defined(__MACH__) || defined(_ANDROID)
 			"movl %[_SH4_TIMESLICE], " _U "cycle_counter(%%rip)	\n"
 
@@ -85,58 +111,64 @@ void ngen_mainloop(void* v_cntx)
 
 		"3:										\n\t"
 #else
-			"movl %[_SH4_TIMESLICE], cycle_counter(%%rip)	\n"
+			"movl $448, cycle_counter(%rip)	\n"
 
 		"run_loop:								\n\t"
-			"movq p_sh4rcb(%%rip), %%rax		\n\t"
-			"movl %p[CpuRunning](%%rax), %%edx	\n\t"
-			"testl %%edx, %%edx					\n\t"
+			"movq p_sh4rcb(%rip), %rax			\n\t"
+			"movl 0x80FFF64(%rax), %edx			\n\t"
+			"testl %edx, %edx					\n\t"
 			"je end_run_loop					\n"
 
 		"slice_loop:							\n\t"
-			"movq p_sh4rcb(%%rip), %%rax		\n\t"
+			"movq p_sh4rcb(%rip), %rax			\n\t"
 #ifdef _WIN32
-			"movl %p[pc](%%rax), %%ecx			\n\t"
+			"movl 0x80FFF48(%rax), %ecx			\n\t"
 #else
 			"movl %p[pc](%%rax), %%edi			\n\t"
 #endif
 			"call bm_GetCode					\n\t"
-			"call *%%rax						\n\t"
-			"movl cycle_counter(%%rip), %%ecx 	\n\t"
-			"testl %%ecx, %%ecx					\n\t"
+			"call *%rax							\n\t"
+			"movl cycle_counter(%rip), %ecx 	\n\t"
+			"testl %ecx, %ecx					\n\t"
 			"jg slice_loop						\n\t"
 
-			"addl %[_SH4_TIMESLICE], %%ecx		\n\t"
-			"movl %%ecx, cycle_counter(%%rip)	\n\t"
+			"addl $448, %ecx					\n\t"
+			"movl %ecx, cycle_counter(%rip)		\n\t"
 			"call UpdateSystem_INTC				\n\t"
 			"jmp run_loop						\n"
 
 		"end_run_loop:							\n\t"
 #endif	// !__MACH__
 
-			"addq $8, %%rsp					 	\n\t"
-			"popq %%r15							\n\t"
-			"popq %%r14							\n\t"
-			"popq %%r13							\n\t"
-			"popq %%r12							\n\t"
 #ifdef _WIN32
-			"popq %%rsi							\n\t"
-			"popq %%rdi							\n\t"
+			"addq $40, %rsp						\n\t"
+#else
+			"addq $8, %%rsp					 	\n\t"
 #endif
-			"popq %%rbp							\n\t"
-			"popq %%rbx							\n\t"
-			:
-			: [CpuRunning] "i"(offsetof(Sh4RCB, cntx.CpuRunning)),
-			  [pc] "i"(offsetof(Sh4RCB, cntx.pc)),
-			  [_SH4_TIMESLICE] "i"(SH4_TIMESLICE)
+			"popq %r15							\n\t"
+			"popq %r14							\n\t"
+			"popq %r13							\n\t"
+			"popq %r12							\n\t"
+#ifdef _WIN32
+			"popq %rsi							\n\t"
+			"popq %rdi							\n\t"
+#endif
+			"popq %rbp							\n\t"
+			"popq %rbx							\n\t"
+			"ret								\n\t"
+			".seh_endproc						\n\t"
+//			:
+//			: [CpuRunning] "i"(offsetof(Sh4RCB, cntx.CpuRunning)),	// 080FFF64h
+//			  [pc] "i"(offsetof(Sh4RCB, cntx.pc)),					// 080FFF48h
+//			  [_SH4_TIMESLICE] "i"(SH4_TIMESLICE)					// 448
 #if !defined(__MACH__) && !defined(_ANDROID)
-			  ,
-			  "i"(&bm_GetCode),			// avoid link error with -flto
-			  "i" (&UpdateSystem_INTC)	// same
+//			  ,
+//			  "i"(&bm_GetCode),			// avoid link error with -flto
+//			  "i" (&UpdateSystem_INTC)	// same
 #endif
-			: "memory"
+//			: "memory"
 	);
-}
+//}
 
 RuntimeBlockInfo* ngen_AllocateBlock(void)
 {
@@ -1096,27 +1128,24 @@ private:
 	template<class Ret, class... Params>
 	void GenCall(Ret(*function)(Params...))
 	{
+#ifndef _WIN32
+		// Need to save xmm registers as they are not preserved in linux/mach
 	   sub(rsp, 16);
 	   movd(ptr[rsp + 0], xmm8);
 	   movd(ptr[rsp + 4], xmm9);
 	   movd(ptr[rsp + 8], xmm10);
 	   movd(ptr[rsp + 12], xmm11);
-#ifdef _WIN32
-	   // shadow space
-	   sub(rsp, 16);
 #endif
 
 	   call(function);
 
-#ifdef _WIN32
-	   // shadow space
-	   add(rsp, 16);
-#endif
+#ifndef _WIN32
 	   movd(xmm8, ptr[rsp + 0]);
 	   movd(xmm9, ptr[rsp + 4]);
 	   movd(xmm10, ptr[rsp + 8]);
 	   movd(xmm11, ptr[rsp + 12]);
 	   add(rsp, 16);
+#endif
 	}
 
 	// uses eax/rax
