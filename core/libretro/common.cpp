@@ -700,9 +700,8 @@ void common_libretro_setup(void)
 #ifdef _WIN64
    // setup_seh();
    AddVectoredExceptionHandler(1, ExceptionHandler);
-#else
-   SetUnhandledExceptionFilter(&ExceptionHandler);
 #endif
+   SetUnhandledExceptionFilter(&ExceptionHandler);
 #else
    exception_handler_install_platform();
    signal(SIGINT, exit);
