@@ -826,7 +826,7 @@ public:
             case shop_frswap:
                mov(rax, (uintptr_t)op.rs1.reg_ptr());
                mov(rcx, (uintptr_t)op.rd.reg_ptr());
-					if (cpu.has(Xbyak::util::Cpu::tAVX))
+					if (0) //cpu.has(Xbyak::util::Cpu::tAVX))
 					{
 						vmovaps(ymm0, yword[rax]);
 						vmovaps(ymm1, yword[rcx]);
