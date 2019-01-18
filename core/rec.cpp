@@ -95,7 +95,7 @@ void ngen_init(void)
 
 void ngen_GetFeatures(ngen_features* dst)
 {
-	dst->InterpreterFallback = true;
+	dst->InterpreterFallback = false;
 	dst->OnlyDynamicEnds = false;
 }
 
